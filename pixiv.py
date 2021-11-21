@@ -10,10 +10,11 @@ import subprocess
 import requests
 
 
-class PixivFile(os.PathLike):
-    def __init__(self, path, filename):
+class PixivDetails(os.PathLike):
+    def __init__(self, path, filename, files=1):
         self.path = path
         self.filename = filename
+        self.files = files
     
     def __enter__(self):
         return self
@@ -110,13 +111,14 @@ class Pixiv:
                 if ffmpeg.returncode:
                     if err: print(err.decode('utf-8'), file=sys.stderr)
             
-            return PixivFile(dst_path, f'{post_id}.webm')
+            return PixivDetails(dst_path, f'{post_id}.webm')
             
             
         else:
             # get the first image and nothing else
             url = post['urls']['regular']
-            return PixivFile(self._download(url), url.split('/')[-1])
+            files = post['pageCount']
+            return PixivDetails(self._download(url), url.split('/')[-1], files)
 
 
 

@@ -33,8 +33,12 @@ class PixivBot:
         ids = self.pixiv.find_urls(message.content)
         if len(ids) > 0:
             async with message.channel.typing():
-                with self.pixiv.download_preview(ids[0]) as file:
-                    await message.channel.send('', file=discord.File(file.path, file.filename))
+                with self.pixiv.download_preview(ids[0]) as details:
+                    msg = ''
+                    if details.files > 1:
+                        msg = f'1/{details.files}'
+                    
+                    await message.channel.send(msg, file=discord.File(details.path, details.filename))
             
             await message.edit(suppress=True)
 
