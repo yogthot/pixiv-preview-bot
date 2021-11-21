@@ -40,7 +40,8 @@ class PixivBot:
                     
                     await message.channel.send(msg, file=discord.File(details.path, details.filename))
             
-            await message.edit(suppress=True)
+            try: await message.edit(suppress=True)
+            except: pass
 
 
 bot = PixivBot(os.environ['DISCORD_TOKEN'], os.environ['PIXIV_COOKIE'])
