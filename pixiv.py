@@ -71,7 +71,7 @@ class Pixiv:
             response.raise_for_status()
             ugoira_meta = json.loads(response.text)['body']
             
-            ugoira_zip = PixivFile(self._download(ugoira_meta['src']), None)
+            ugoira_zip = PixivDetails(self._download(ugoira_meta['src']), None)
             frames = ugoira_meta['frames']
             
             fd, dst_path = tempfile.mkstemp()
