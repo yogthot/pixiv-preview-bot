@@ -1,5 +1,6 @@
 
 import os
+import re
 import asyncio
 import discord
 
@@ -26,14 +27,28 @@ class PixivBot:
     async def close(self):
         await _safe_await(self.client.close())
     
+    
+    POST_REGEXP = re.compile('(<?)https?:\/\/(?:www\.)?pixiv\.net\/(?:[a-zA-Z]{2}\/)?artworks\/(?P<post_id>\d+)>?', flags=re.IGNORECASE)
+    def find_url(self, text):
+        urls = self.POST_REGEXP.findall(text)
+        if len(urls) > 0 and urls[0][0] != '<':
+            return urls[0][1]
+            
+        else:
+            return None
+    
     async def on_message(self, message):
         if message.author.bot:
             return
         
-        ids = self.pixiv.find_urls(message.content)
-        if len(ids) > 0:
+        if message.guild.id != 880079930929582091:
+            return
+        
+        id = self.find_url(message.content)
+        if id is not None:
+            gif = bool(re.search(r'\bgif\b', message.content))
             async with message.channel.typing():
-                with self.pixiv.download_preview(ids[0]) as details:
+                with self.pixiv.download_preview(id, gif=gif) as details:
                     msg = ''
                     if details.files > 1:
                         msg = f'1/{details.files}'

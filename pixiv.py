@@ -2,7 +2,6 @@
 
 import os
 import sys
-import re
 import tempfile
 import json
 import zipfile
@@ -30,8 +29,6 @@ class PixivDetails(os.PathLike):
 
 
 class Pixiv:
-    POST_REGEXP = re.compile('https?:\/\/(?:www\.)?pixiv\.net\/(?:[a-zA-Z]{2}\/)?artworks\/(?P<post_id>\d+)', flags=re.IGNORECASE)
-
     POST_GET_URL = 'https://www.pixiv.net/ajax/illust/{post_id}'
     #POST_PAGES_URL = 'https://www.pixiv.net/ajax/illust/{post_id}/pages'
     POST_UGOIRA_URL = 'https://www.pixiv.net/ajax/illust/{post_id}/ugoira_meta'
@@ -47,9 +44,6 @@ class Pixiv:
         cookie = requests.cookies.create_cookie(name='PHPSESSID', value=cookie)
         self.http.cookies.set_cookie(cookie)
     
-    def find_urls(self, text):
-        return self.POST_REGEXP.findall(text)
-    
     def _download(self, url):
         with self.http.get(url, stream=True) as resp:
             fd, path = tempfile.mkstemp()
@@ -60,7 +54,7 @@ class Pixiv:
             
             return path
     
-    def download_preview(self, post_id):
+    def download_preview(self, post_id, gif=False):
         response = self.http.get(self.POST_GET_URL.format(post_id=post_id))
         response.raise_for_status()
         post = json.loads(response.text)['body']
@@ -76,43 +70,71 @@ class Pixiv:
             
             fd, dst_path = tempfile.mkstemp()
             
-            with ugoira_zip, \
-                tempfile.TemporaryDirectory() as tmp_dir, \
-                zipfile.ZipFile(ugoira_zip, 'r') as zip:
-                
-                zip.extractall(tmp_dir)
-                
-                inputs_path = f'{tmp_dir}/inputs.txt'
-                with open(inputs_path, 'w+') as inputs:
-                    for frame in frames:
-                        inputs.write('file ' + str(frame['file']) + '\n')
-                        inputs.write('duration ' + str(frame['delay'] / 1000) + '\n')
-                
-                arguments = [
-                    'ffmpeg',
-                    # input
-                    '-f', 'concat',
-                    '-i', str(inputs_path),
+            # webm
+            if not gif:
+                with ugoira_zip, \
+                    tempfile.TemporaryDirectory() as tmp_dir, \
+                    zipfile.ZipFile(ugoira_zip, 'r') as zip:
                     
-                    # output
-                    '-f', 'webm',
-                    '-c:v', 'libvpx',
-                    '-b:v', '10M',
-                    '-an',
-                    '-vsync', '2',
-                    '-r', '1000',
-                    '-y',
-                    '-'
-                ]
+                    zip.extractall(tmp_dir)
+                    
+                    inputs_path = f'{tmp_dir}/inputs.txt'
+                    with open(inputs_path, 'w+') as inputs:
+                        for frame in frames:
+                            inputs.write('file ' + str(frame['file']) + '\n')
+                            inputs.write('duration ' + str(frame['delay'] / 1000) + '\n')
+                    
+                    arguments = [
+                        'ffmpeg',
+                        # input
+                        '-f', 'concat',
+                        '-i', str(inputs_path),
+                        
+                        # output
+                        '-f', 'webm',
+                        '-c:v', 'libvpx',
+                        '-b:v', '10M',
+                        '-an',
+                        '-vsync', '2',
+                        '-r', '1000',
+                        '-y',
+                        '-'
+                    ]
+                    
+                    FNULL = open(os.devnull, 'w')
+                    ffmpeg = subprocess.Popen(arguments, shell=False, stdin=FNULL, stdout=fd, stderr=subprocess.PIPE)
+                    out, err = ffmpeg.communicate()
+                    if ffmpeg.returncode:
+                        if err: print(err.decode('utf-8'), file=sys.stderr)
                 
-                FNULL = open(os.devnull, 'w')
-                ffmpeg = subprocess.Popen(arguments, shell=False, stdin=FNULL, stdout=fd, stderr=subprocess.PIPE)
-                out, err = ffmpeg.communicate()
-                if ffmpeg.returncode:
-                    if err: print(err.decode('utf-8'), file=sys.stderr)
-            
-            return PixivDetails(dst_path, f'{post_id}.webm')
-            
+                return PixivDetails(dst_path, f'{post_id}.webm')
+                
+            else:
+                # gif
+                with ugoira_zip, \
+                    tempfile.TemporaryDirectory() as tmp_dir, \
+                    zipfile.ZipFile(ugoira_zip, 'r') as zip:
+                    
+                    zip.extractall(tmp_dir)
+                    
+                    delays = []
+                    for frame in frames:
+                        delay = str(frame['delay'] / 1000)
+                        file = str(frame['file'])
+                        delays.extend([
+                            '-delay', delay,
+                            f'{tmp_dir}/{file}' 
+                        ])
+                    
+                    arguments = ['convert', *delays, 'gif:-']
+                    
+                    FNULL = open(os.devnull, 'w')
+                    ffmpeg = subprocess.Popen(arguments, shell=False, stdin=FNULL, stdout=fd, stderr=subprocess.PIPE)
+                    out, err = ffmpeg.communicate()
+                    if ffmpeg.returncode:
+                        if err: print(err.decode('utf-8'), file=sys.stderr)
+                
+                return PixivDetails(dst_path, f'{post_id}.gif')
             
         else:
             # get the first image and nothing else
