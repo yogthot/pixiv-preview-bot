@@ -41,8 +41,9 @@ class PixivBot:
         if message.author.bot:
             return
         
-        if message.guild.id != 880079930929582091:
-            return
+        # testing server :(
+        #if message.guild.id != 880079930929582091:
+        #    return
         
         id = self.find_url(message.content)
         if id is not None:
