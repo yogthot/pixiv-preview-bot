@@ -20,7 +20,8 @@ class PixivDetails(os.PathLike):
         return self
     
     def __exit__(self, *args):
-        os.remove(self.path)
+        if self.path is not None:
+            os.remove(self.path)
     
     def __fspath__(self):
         return self.path
