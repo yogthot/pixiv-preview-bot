@@ -49,15 +49,17 @@ class PixivBot:
         if id is not None:
             gif = bool(re.search(r'\bgif\b', message.content))
             async with message.channel.typing():
-                with self.pixiv.download_preview(id, gif=gif) as details:
-                    msg = ''
-                    if details.files > 1:
-                        msg = f'1/{details.files}'
-                    
-                    await message.channel.send(msg, file=discord.File(details.path, details.filename))
-            
-            try: await message.edit(suppress=True)
-            except: pass
+                isnsfw = message.channel.is_nsfw()
+                with self.pixiv.download_preview(id, gif=gif, allow_nsfw=isnsfw) as details:
+                    if not details.nsfw or message.channel.is_nsfw():
+                        msg = ''
+                        if details.files > 1:
+                            msg = f'1/{details.files}'
+                        
+                        await message.channel.send(msg, file=discord.File(details.path, details.filename))
+                        
+                        try: await message.edit(suppress=True)
+                        except: pass
 
 
 bot = PixivBot(os.environ['DISCORD_TOKEN'], os.environ['PIXIV_COOKIE'])
