@@ -10,10 +10,11 @@ import requests
 
 
 class PixivDetails(os.PathLike):
-    def __init__(self, path, filename, files=1):
+    def __init__(self, path, filename, files=1, nsfw=True):
         self.path = path
         self.filename = filename
         self.files = files
+        self.nsfw = nsfw
     
     def __enter__(self):
         return self
@@ -54,10 +55,14 @@ class Pixiv:
             
             return path
     
-    def download_preview(self, post_id, gif=False):
+    def download_preview(self, post_id, gif=False, allow_nsfw=False):
         response = self.http.get(self.POST_GET_URL.format(post_id=post_id))
         response.raise_for_status()
         post = json.loads(response.text)['body']
+        isnsfw = post['xRestrict'] >= 1
+        
+        if not allow_nsfw and isnsfw:
+            return PixivDetails(None, None, nsfw=isnsfw)
         
         if post['illustType'] == 2:
             # ugoira
@@ -65,7 +70,7 @@ class Pixiv:
             response.raise_for_status()
             ugoira_meta = json.loads(response.text)['body']
             
-            ugoira_zip = PixivDetails(self._download(ugoira_meta['src']), None)
+            ugoira_zip = PixivDetails(self._download(ugoira_meta['src']), None, nsfw=isnsfw)
             frames = ugoira_meta['frames']
             
             fd, dst_path = tempfile.mkstemp()
@@ -107,7 +112,7 @@ class Pixiv:
                     if ffmpeg.returncode:
                         if err: print(err.decode('utf-8'), file=sys.stderr)
                 
-                return PixivDetails(dst_path, f'{post_id}.webm')
+                return PixivDetails(dst_path, f'{post_id}.webm', nsfw=isnsfw)
                 
             else:
                 # gif
@@ -134,13 +139,13 @@ class Pixiv:
                     if ffmpeg.returncode:
                         if err: print(err.decode('utf-8'), file=sys.stderr)
                 
-                return PixivDetails(dst_path, f'{post_id}.gif')
+                return PixivDetails(dst_path, f'{post_id}.gif', nsfw=isnsfw)
             
         else:
             # get the first image and nothing else
             url = post['urls']['regular']
             files = post['pageCount']
-            return PixivDetails(self._download(url), url.split('/')[-1], files)
+            return PixivDetails(self._download(url), url.split('/')[-1], files, nsfw=isnsfw)
 
 
 

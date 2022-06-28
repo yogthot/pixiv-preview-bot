@@ -41,19 +41,21 @@ class PixivBot:
         if message.author.bot:
             return
         
-        if message.guild.id != 880079930929582091:
-            return
+        #if message.guild.id != 880079930929582091:
+        #    return
         
         id = self.find_url(message.content)
         if id is not None:
             gif = bool(re.search(r'\bgif\b', message.content))
             async with message.channel.typing():
-                with self.pixiv.download_preview(id, gif=gif) as details:
-                    msg = ''
-                    if details.files > 1:
-                        msg = f'1/{details.files}'
-                    
-                    await message.channel.send(msg, file=discord.File(details.path, details.filename))
+                isnsfw = message.channel.is_nsfw()
+                with self.pixiv.download_preview(id, gif=gif, isnsfw) as details:
+                    if not details.nsfw or message.channel.is_nsfw():
+                        msg = ''
+                        if details.files > 1:
+                            msg = f'1/{details.files}'
+                        
+                        await message.channel.send(msg, file=discord.File(details.path, details.filename))
             
             try: await message.edit(suppress=True)
             except: pass
