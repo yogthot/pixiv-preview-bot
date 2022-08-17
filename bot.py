@@ -224,7 +224,7 @@ class PixivBot:
             return urls[0][0], urls[0][2]
             
         else:
-            return None
+            return None, None
     
     def parse_page(self, msg):
         try: return int(re.search(r'\bp(\d+)\b', msg).group(1))
@@ -234,12 +234,11 @@ class PixivBot:
         if message.author.bot:
             return
         
-        if OWNER_ID is not None and message.author.id == OWNER_ID and message.content == '--whitelist':
-            self.whitelist.add(message.guild.id, message.guild.name)
-            await message.add_reaction('✅')
-            return
-        
         if message.guild.id not in self.whitelist:
+            if OWNER_ID is not None and message.author.id == OWNER_ID and message.content == '--whitelist':
+                self.whitelist.add(message.guild.id, message.guild.name)
+                await message.add_reaction('✅')
+                return
             return
         
         url, id = self.find_url(message.content)
