@@ -8,13 +8,11 @@ import asyncio
 import json
 import zipfile
 import subprocess
+import pathlib
 
 import requests
 import discord
 from bs4 import BeautifulSoup
-
-DEBUG_GUILD = os.environ.get('DEBUG_GUILD')
-DEBUG_GUILD = int(DEBUG_GUILD) if DEBUG_GUILD is not None else None
 
 DISCORD_TOKEN = os.environ['DISCORD_TOKEN']
 PIXIV_COOKIE = os.environ['PIXIV_COOKIE']
@@ -174,12 +172,34 @@ class PixivPost:
                 url = post['urls']['regular']
             
             return PixivFile(download_url(url), url.split('/')[-1])
+
+class ServerList:
+    def __init__(self, filename):
+        self.filename = filename
         
+        if pathlib.Path(self.filename).exists():
+            with open(self.filename) as f:
+                self.servers = json.load(f)
+        
+        else:
+            self.servers = dict()
+    
+    def contains(self, guild_id):
+        return str(guild_id) in self.servers
+    
+    def __contains__(self, value):
+        return self.contains(value)
+    
+    def add(self, guild_id, name):
+        self.servers[str(guild_id)] = name
+        with open(self.filename, 'w+') as f:
+            json.dump(self.servers, f)
 
 class PixivBot:
     def __init__(self, token):
         self.token = token
         
+        self.whitelist = ServerList('whitelist.json')
         self.client = discord.Client(guild_subscriptions=False)
         self.client.event(self.on_message)
     
@@ -212,7 +232,7 @@ class PixivBot:
         if message.author.bot:
             return
         
-        if DEBUG_GUILD is not None and message.guild.id != DEBUG_GUILD:
+        if message.guild.id not in self.whitelist:
             return
         
         url, id = self.find_url(message.content)
