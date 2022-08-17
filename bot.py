@@ -226,10 +226,10 @@ class PixivBot:
                 return
             
             # clamp
-            page = max(0, min(page, post.pages - 1))
+            page = max(1, min(page, post.pages))
             
             async with message.channel.typing():
-                with post.preview(page=page, gif=isgif) as details:
+                with post.preview(page=page - 1, gif=isgif) as details:
                     file = discord.File(details.path, details.filename)
                     
                     embed = discord.Embed(
@@ -241,8 +241,7 @@ class PixivBot:
                     embed.set_author(name=post.author, url=post.author_url)
                     
                     if post.pages > 1:
-                        embed.add_field(name='Page', value=str(page))
-                        embed.add_field(name='Total Pages', value=str(post.pages))
+                        embed.add_field(name='Page', value='{}/{}'.format(page, post.pages), inline=False)
                     
                     await message.channel.send('', embed=embed, file=file)
                     
