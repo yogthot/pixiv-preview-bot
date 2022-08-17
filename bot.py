@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 
 import sys
 import os
@@ -14,6 +15,7 @@ import requests
 import discord
 from bs4 import BeautifulSoup
 
+OWNER_ID = int(os.environ['OWNER_ID']) if 'OWNER_ID' in os.environ else None
 DISCORD_TOKEN = os.environ['DISCORD_TOKEN']
 PIXIV_COOKIE = os.environ['PIXIV_COOKIE']
 
@@ -193,7 +195,7 @@ class ServerList:
     def add(self, guild_id, name):
         self.servers[str(guild_id)] = name
         with open(self.filename, 'w+') as f:
-            json.dump(self.servers, f)
+            json.dump(self.servers, f, indent=4, sort_keys=True)
 
 class PixivBot:
     def __init__(self, token):
@@ -232,6 +234,11 @@ class PixivBot:
         if message.author.bot:
             return
         
+        if OWNER_ID is not None and message.author.id == OWNER_ID and message.content == '--whitelist':
+            self.whitelist.add(message.guild.id, message.guild.name)
+            await message.add_reaction('✅')
+            return
+        
         if message.guild.id not in self.whitelist:
             return
         
@@ -245,7 +252,7 @@ class PixivBot:
                 # don't do anything if nsfw post and sfw channel
                 return
             
-            # clamp
+            # clamp to [1, post.pages]
             page = max(1, min(page, post.pages))
             
             async with message.channel.typing():
