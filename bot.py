@@ -218,8 +218,9 @@ class PixivBot:
         flags=re.IGNORECASE
     )
     
-    def find_url(self, text):
-        urls = self.POST_REGEXP.findall(text)
+    @classmethod
+    def find_url(cls, text):
+        urls = cls.POST_REGEXP.findall(text)
         if len(urls) > 0 and urls[0][1] != '<':
             return urls[0][0], urls[0][2]
             
@@ -265,6 +266,7 @@ class PixivBot:
                         url=url,
                     )
                     embed.set_author(name=post.author, url=post.author_url)
+                    embed.set_image(url=f'attachment://{details.filename}')
                     
                     if post.pages > 1:
                         embed.add_field(name='Page', value='{}/{}'.format(page, post.pages), inline=False)
@@ -275,20 +277,20 @@ class PixivBot:
                     try: await message.edit(suppress=True)
                     except: pass
 
-
-bot = PixivBot(DISCORD_TOKEN)
-
-loop = asyncio.get_event_loop()
-loop.run_until_complete(bot.start())
-
-print('bot started')
-
-try:
-    loop.run_forever()
+if __name__ == '__main__':
+    bot = PixivBot(DISCORD_TOKEN)
     
-except KeyboardInterrupt:
-    print('\n\nbye')
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(bot.start())
     
-finally:
-    loop.run_until_complete(bot.close())
+    print('bot started')
+    
+    try:
+        loop.run_forever()
+        
+    except KeyboardInterrupt:
+        print('\n\nbye')
+        
+    finally:
+        loop.run_until_complete(bot.close())
 
