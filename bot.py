@@ -266,7 +266,9 @@ class PixivBot:
                         url=url,
                     )
                     embed.set_author(name=post.author, url=post.author_url)
-                    embed.set_image(url=f'attachment://{details.filename}')
+                    
+                    if not post.is_ugoira:
+                        embed.set_image(url=f'attachment://{details.filename}')
                     
                     if post.pages > 1:
                         embed.add_field(name='Page', value='{}/{}'.format(page, post.pages), inline=False)
