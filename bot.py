@@ -131,7 +131,7 @@ class PixivPost:
             
             delays = []
             for frame in self.ugoira_frames:
-                delay = str(frame['delay'] / 1000)
+                delay = str(frame['delay'] / 10)
                 file = str(frame['file'])
                 delays.extend([
                     '-delay', delay,
@@ -156,7 +156,7 @@ class PixivPost:
             self.ugoira_meta = json.loads(response.text)['body']
             self.ugoira_frames = self.ugoira_meta['frames']
             
-            with PixivFile(download_url(self.ugoira_meta['src']), None) as ugoira_zip:
+            with PixivFile(download_url(self.ugoira_meta['originalSrc']), None) as ugoira_zip:
                 if gif:
                     return self.convert_gif(ugoira_zip)
                     
@@ -168,10 +168,10 @@ class PixivPost:
                 response = http.get('https://www.pixiv.net/ajax/illust/{post_id}/pages'.format(post_id=self.id))
                 response.raise_for_status()
                 pages = json.loads(response.text)['body']
-                url = pages[page]['urls']['regular']
+                url = pages[page]['urls']['original']
                 
             else:
-                url = post['urls']['regular']
+                url = post['urls']['original']
             
             return PixivFile(download_url(url), url.split('/')[-1])
 
@@ -202,7 +202,10 @@ class PixivBot:
         self.token = token
         
         self.whitelist = ServerList('whitelist.json')
-        self.client = discord.Client(guild_subscriptions=False)
+        intents = discord.Intents.default()
+        intents.guild_messages = True
+        intents.message_content = True
+        self.client = discord.Client(guild_subscriptions=False, intents=intents)
         self.client.event(self.on_message)
     
     async def start(self):
@@ -283,6 +286,7 @@ if __name__ == '__main__':
     bot = PixivBot(DISCORD_TOKEN)
     
     loop = asyncio.get_event_loop()
+    #loop = asyncio.new_event_loop()
     loop.run_until_complete(bot.start())
     
     print('bot started')
