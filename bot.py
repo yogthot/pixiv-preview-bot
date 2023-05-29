@@ -270,7 +270,7 @@ class PixivBot:
                     )
                     embed.set_author(name=post.author, url=post.author_url)
                     
-                    if not post.is_ugoira:
+                    if not post.is_ugoira or isgif:
                         embed.set_image(url=f'attachment://{details.filename}')
                     
                     if post.pages > 1:
@@ -285,8 +285,7 @@ class PixivBot:
 if __name__ == '__main__':
     bot = PixivBot(DISCORD_TOKEN)
     
-    loop = asyncio.get_event_loop()
-    #loop = asyncio.new_event_loop()
+    loop = asyncio.new_event_loop()
     loop.run_until_complete(bot.start())
     
     print('bot started')
