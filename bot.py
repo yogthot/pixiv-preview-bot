@@ -107,8 +107,7 @@ class PixivPost:
                 '-c:v', 'libvpx',
                 '-b:v', '10M',
                 '-an',
-                '-vsync', '2',
-                '-r', '1000',
+                '-fps_mode', 'vfr',
                 '-y',
                 '-'
             ]
@@ -209,8 +208,9 @@ class PixivBot:
         self.client.event(self.on_message)
     
     async def start(self):
+        await self.client.login(self.token)
         loop = asyncio.get_event_loop()
-        loop.create_task(self.client.start(self.token))
+        loop.create_task(self.client.connect(reconnect=True))
     
     async def close(self):
         await self.client.close()
